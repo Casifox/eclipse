@@ -1,0 +1,1056 @@
+<!--
+  Éclipse+ Web Application
+  ==============================================
+  A single‑page application that gamifies your life.
+  Built with HTML, TailwindCSS and vanilla JavaScript.
+  All user data is stored locally in the browser via localStorage.
+  The design is inspired by Apple and macOS with a futuristic glassmorphic look.
+
+  Features:
+    • Dashboard with XP bar, daily stats and quick actions
+    • Task manager with categories, deadlines and XP rewards
+    • Habit tracker with streaks and weekly view
+    • Skill tree with categories and levels
+    • Reward shop to spend your XP on real life treats
+    • Vision board and daily journal with mood tracking and charts
+    • Settings panel with theme toggle, data export/import and reset
+    • Responsive design for mobile, tablet and desktop
+
+  Note: All JavaScript is included inline for simplicity.
+-->
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Éclipse+</title>
+  <!-- TailwindCSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind configuration to extend colours and fonts
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: '#0E0E10',
+            accent: '#007AFF',
+            secondary: '#A970FF',
+          },
+          fontFamily: {
+            sans: ['Poppins', 'ui‑sans‑serif', 'system‑ui'],
+          },
+        },
+      },
+    }
+  </script>
+  <!-- Include Heroicons for icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+  <!-- Include Chart.js for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Include Confetti for celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.min.js"></script>
+  <!-- AOS for subtle animations -->
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html {
+      font-family: 'Poppins', sans-serif;
+    }
+    body.dark {
+      background: #0E0E10;
+      color: #F4F4F5;
+    }
+    body.light {
+      background: #F4F4F5;
+      color: #0E0E10;
+    }
+    /* Glassmorphism card */
+    .glass {
+      @apply bg-white/10 backdrop-blur-md rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/20;
+    }
+    /* Hide scroll bar for horizontal habit tracker */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
+    }
+    /* Animations for level up */
+    @keyframes levelUpHalo {
+      0% { box-shadow: 0 0 0 0 rgba(0,122,255,0.7); }
+      70% { box-shadow: 0 0 30px 30px rgba(0,122,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,122,255,0); }
+    }
+    .animate-level-up {
+      animation: levelUpHalo 2s ease-out;
+    }
+  </style>
+</head>
+<body class="dark">
+  <!-- Background transitions for day/night -->
+  <div id="bg-animation" class="fixed inset-0 -z-10 transition-colors duration-1000"></div>
+  <!-- Main container -->
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 md:p-6">
+      <h1 class="text-2xl md:text-3xl font-semibold">Éclipse+</h1>
+      <div class="flex items-center space-x-4">
+        <button id="themeToggle" class="p-2 rounded-full hover:bg-white/20 transition" title="Changer de thème">
+          <i data-feather="sun"></i>
+        </button>
+        <button id="exportData" class="p-2 rounded-full hover:bg-white/20 transition" title="Exporter les données">
+          <i data-feather="download"></i>
+        </button>
+        <button id="importDataBtn" class="p-2 rounded-full hover:bg-white/20 transition" title="Importer des données">
+          <i data-feather="upload"></i>
+        </button>
+        <input type="file" id="importDataFile" accept="application/json" class="hidden" />
+      </div>
+    </header>
+    <!-- Navigation Tabs -->
+    <nav class="flex justify-around bg-white/10 backdrop-blur-md py-2 border-t border-b border-white/10 text-sm">
+      <button class="tab active" data-tab="dashboard"><i data-feather="home"></i><span class="hidden md:inline ml-1">Tableau</span></button>
+      <button class="tab" data-tab="tasks"><i data-feather="check-circle"></i><span class="hidden md:inline ml-1">Tâches</span></button>
+      <button class="tab" data-tab="habits"><i data-feather="repeat"></i><span class="hidden md:inline ml-1">Habitudes</span></button>
+      <button class="tab" data-tab="skills"><i data-feather="layers"></i><span class="hidden md:inline ml-1">Compétences</span></button>
+      <button class="tab" data-tab="shop"><i data-feather="shopping-bag"></i><span class="hidden md:inline ml-1">Boutique</span></button>
+      <button class="tab" data-tab="journal"><i data-feather="book"></i><span class="hidden md:inline ml-1">Journal</span></button>
+      <button class="tab" data-tab="settings"><i data-feather="settings"></i><span class="hidden md:inline ml-1">Réglages</span></button>
+    </nav>
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+      <!-- Dashboard Section -->
+      <section id="dashboard" class="tab-content">
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Profile and XP -->
+          <div class="glass p-6" data-aos="fade-up">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-xl font-semibold">Bienvenue, <span id="userName">Noah</span></h2>
+                <p class="text-sm opacity-70">Niveau <span id="userLevel">1</span></p>
+              </div>
+              <img id="avatarImg" src="" alt="Avatar" class="w-14 h-14 rounded-full bg-white/20" />
+            </div>
+            <div class="mb-4">
+              <div class="flex justify-between text-xs">
+                <span>XP: <span id="userXp">0</span>/<span id="xpNeeded">100</span></span>
+                <span id="levelUpMessage" class="text-accent hidden">Niveau +1 ! 🎉</span>
+              </div>
+              <div class="w-full h-3 bg-white/20 rounded-full overflow-hidden mt-1">
+                <div id="xpBar" class="h-full bg-accent transition-all"></div>
+              </div>
+            </div>
+            <!-- Daily stats -->
+            <div class="flex justify-between mt-4 text-sm">
+              <div class="text-center">
+                <p class="text-lg font-semibold" id="todayTasks">0</p>
+                <p class="opacity-70">Tâches</p>
+              </div>
+              <div class="text-center">
+                <p class="text-lg font-semibold" id="todayHabits">0</p>
+                <p class="opacity-70">Habitudes</p>
+              </div>
+              <div class="text-center">
+                <p class="text-lg font-semibold" id="todayMood">😃</p>
+                <p class="opacity-70">Humeur</p>
+              </div>
+            </div>
+          </div>
+          <!-- Quick actions & Quote -->
+          <div class="glass p-6 flex flex-col justify-between" data-aos="fade-up">
+            <div class="space-y-3">
+              <h3 class="text-lg font-semibold">Actions rapides</h3>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="quickAddTask" class="py-3 px-4 bg-accent text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="plus-circle"></i><span>Tâche</span></button>
+                <button id="quickAddHabit" class="py-3 px-4 bg-secondary text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="repeat"></i><span>Habitude</span></button>
+                <button id="quickAddJournal" class="py-3 px-4 bg-emerald-500 text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="edit-2"></i><span>Journal</span></button>
+                <button id="quickShop" class="py-3 px-4 bg-yellow-500 text-black rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="shopping-bag"></i><span>Boutique</span></button>
+              </div>
+            </div>
+            <div class="mt-6">
+              <p class="italic text-sm text-center" id="dailyQuote">« La discipline bat la motivation. »</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Tasks Section -->
+      <section id="tasks" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Tâches</h2>
+          <button id="addTaskBtn" class="flex items-center space-x-1 text-accent hover:underline"><i data-feather="plus"></i><span>Nouvelle</span></button>
+        </div>
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <select id="taskFilterCategory" class="bg-white/10 backdrop-blur-md p-2 rounded-md">
+            <option value="">Toutes les catégories</option>
+          </select>
+          <select id="taskFilterStatus" class="bg-white/10 backdrop-blur-md p-2 rounded-md">
+            <option value="">Tous les statuts</option>
+            <option value="todo">À faire</option>
+            <option value="in-progress">En cours</option>
+            <option value="done">Terminée</option>
+          </select>
+          <input type="date" id="taskFilterDate" class="bg-white/10 backdrop-blur-md p-2 rounded-md" />
+        </div>
+        <!-- Task List -->
+        <div id="taskList" class="space-y-4"></div>
+      </section>
+      <!-- Habits Section -->
+      <section id="habits" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Habitudes</h2>
+          <button id="addHabitBtn" class="flex items-center space-x-1 text-secondary hover:underline"><i data-feather="plus"></i><span>Ajouter</span></button>
+        </div>
+        <!-- Habit List -->
+        <div id="habitList" class="space-y-4"></div>
+      </section>
+      <!-- Skills Section -->
+      <section id="skills" class="tab-content hidden">
+        <h2 class="text-xl font-semibold mb-4">Arbre de compétences</h2>
+        <div id="skillsGrid" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </section>
+      <!-- Shop Section -->
+      <section id="shop" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Boutique</h2>
+          <button id="addRewardBtn" class="flex items-center space-x-1 text-yellow-400 hover:underline"><i data-feather="plus"></i><span>Récompense</span></button>
+        </div>
+        <div id="rewardList" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </section>
+      <!-- Journal & Vision Section -->
+      <section id="journal" class="tab-content hidden">
+        <div class="flex justify-between items-center">
+          <h2 class="text-xl font-semibold">Journal et Vision</h2>
+          <button id="addJournalBtn" class="flex items-center space-x-1 text-emerald-500 hover:underline"><i data-feather="plus"></i><span>Nouveau</span></button>
+        </div>
+        <div class="mt-4 grid md:grid-cols-2 gap-6">
+          <!-- Vision Board -->
+          <div class="glass p-4" data-aos="fade-up">
+            <h3 class="text-lg font-semibold mb-2">Vision Board</h3>
+            <div id="visionBoard" class="grid grid-cols-2 gap-2"></div>
+            <button id="addVisionBtn" class="mt-2 text-accent hover:underline"><i data-feather="plus"></i> Ajouter une vision</button>
+          </div>
+          <!-- Journal -->
+          <div class="glass p-4" data-aos="fade-up">
+            <h3 class="text-lg font-semibold mb-2">Journal Quotidien</h3>
+            <canvas id="moodChart" class="mb-4"></canvas>
+            <div id="journalEntries" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+      <!-- Settings Section -->
+      <section id="settings" class="tab-content hidden">
+        <h2 class="text-xl font-semibold mb-4">Paramètres</h2>
+        <div class="glass p-4 mb-4" data-aos="fade-up">
+          <h3 class="font-medium mb-2">Profil</h3>
+          <div class="flex items-center space-x-4 mb-2">
+            <input id="profileName" type="text" placeholder="Nom d'utilisateur" class="flex-1 bg-white/10 p-2 rounded-md" />
+            <input id="profileAvatar" type="file" accept="image/*" class="flex-1 p-2" />
+          </div>
+          <button id="saveProfileBtn" class="px-4 py-2 bg-accent text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
+        </div>
+        <div class="glass p-4 mb-4" data-aos="fade-up">
+          <h3 class="font-medium mb-2">Thème</h3>
+          <label class="flex items-center space-x-2">
+            <input id="themeSwitch" type="checkbox" class="toggle" />
+            <span>Mode clair</span>
+          </label>
+        </div>
+        <div class="glass p-4 mb-4" data-aos="fade-up">
+          <h3 class="font-medium mb-2">Données</h3>
+          <button id="resetDataBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:scale-105 transition">Réinitialiser les données</button>
+        </div>
+      </section>
+    </main>
+    <!-- Modals (hidden by default) -->
+    <!-- Task Modal -->
+    <div id="taskModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+      <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
+        <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeTaskModal"><i data-feather="x"></i></button>
+        <h3 class="text-lg font-semibold mb-4" id="taskModalTitle">Nouvelle tâche</h3>
+        <div class="space-y-3">
+          <input type="text" id="taskTitle" placeholder="Titre" class="w-full bg-white/10 p-2 rounded-md" />
+          <input type="text" id="taskCategory" placeholder="Catégorie" class="w-full bg-white/10 p-2 rounded-md" />
+          <input type="date" id="taskDueDate" class="w-full bg-white/10 p-2 rounded-md" />
+          <input type="number" id="taskXp" placeholder="XP" class="w-full bg-white/10 p-2 rounded-md" />
+          <select id="taskStatus" class="w-full bg-white/10 p-2 rounded-md">
+            <option value="todo">À faire</option>
+            <option value="in-progress">En cours</option>
+            <option value="done">Terminée</option>
+          </select>
+        </div>
+        <button id="saveTaskBtn" class="mt-4 w-full py-2 bg-accent text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
+      </div>
+    </div>
+    <!-- Habit Modal -->
+    <div id="habitModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+      <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
+        <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeHabitModal"><i data-feather="x"></i></button>
+        <h3 class="text-lg font-semibold mb-4" id="habitModalTitle">Nouvelle habitude</h3>
+        <div class="space-y-3">
+          <input type="text" id="habitName" placeholder="Nom de l'habitude" class="w-full bg-white/10 p-2 rounded-md" />
+          <input type="number" id="habitXp" placeholder="XP par jour" class="w-full bg-white/10 p-2 rounded-md" />
+        </div>
+        <button id="saveHabitBtn" class="mt-4 w-full py-2 bg-secondary text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
+      </div>
+    </div>
+    <!-- Reward Modal -->
+    <div id="rewardModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+      <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
+        <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeRewardModal"><i data-feather="x"></i></button>
+        <h3 class="text-lg font-semibold mb-4" id="rewardModalTitle">Nouvelle récompense</h3>
+        <div class="space-y-3">
+          <input type="text" id="rewardName" placeholder="Nom de la récompense" class="w-full bg-white/10 p-2 rounded-md" />
+          <input type="number" id="rewardCost" placeholder="Coût en XP" class="w-full bg-white/10 p-2 rounded-md" />
+        </div>
+        <button id="saveRewardBtn" class="mt-4 w-full py-2 bg-yellow-400 text-black rounded-lg hover:scale-105 transition">Enregistrer</button>
+      </div>
+    </div>
+    <!-- Journal Modal -->
+    <div id="journalModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+      <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
+        <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeJournalModal"><i data-feather="x"></i></button>
+        <h3 class="text-lg font-semibold mb-4">Nouvelle entrée</h3>
+        <div class="space-y-3">
+          <label class="block">Humeur :
+            <input type="range" id="journalMood" min="1" max="10" value="5" class="w-full" />
+          </label>
+          <textarea id="journalNote" rows="4" placeholder="Note du jour" class="w-full bg-white/10 p-2 rounded-md"></textarea>
+          <input type="number" id="journalXp" placeholder="XP gagné" class="w-full bg-white/10 p-2 rounded-md" />
+        </div>
+        <button id="saveJournalBtn" class="mt-4 w-full py-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
+      </div>
+    </div>
+    <!-- Vision Modal -->
+    <div id="visionModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+      <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
+        <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeVisionModal"><i data-feather="x"></i></button>
+        <h3 class="text-lg font-semibold mb-4">Ajouter à la Vision Board</h3>
+        <div class="space-y-3">
+          <input type="file" id="visionImage" accept="image/*" class="w-full" />
+          <textarea id="visionText" rows="3" placeholder="Citation ou description" class="w-full bg-white/10 p-2 rounded-md"></textarea>
+        </div>
+        <button id="saveVisionBtn" class="mt-4 w-full py-2 bg-accent text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Initialize AOS animations
+    AOS.init({ once: true });
+    // Global error handler to help debugging during development. It displays
+    // any runtime JavaScript errors as alerts. Comment or remove this
+    // handler in production if undesired.
+    window.onerror = function(message, source, lineno, colno, error) {
+      alert('Erreur JS: ' + message + '\n' + source + ':' + lineno + ':' + colno);
+    };
+    // Utility: generate unique IDs
+    const uuid = () => '_' + Math.random().toString(36).substr(2, 9);
+    // Default quotes for daily inspiration
+    const quotes = [
+      'La discipline bat la motivation.',
+      'Petit à petit, l’oiseau fait son nid.',
+      'Le succès est la somme de petits efforts répétés.',
+      'Tout ce qui vaut la peine d’être fait mérite d’être bien fait.',
+      'Reste concentré et continue de progresser.',
+    ];
+
+    // Polyfill for confetti if the CDN fails to load. In the offline sandbox
+    // environment the external canvas‑confetti library cannot be fetched
+    // resulting in `confetti` being undefined. To avoid runtime errors,
+    // provide a no‑op stub. Developers can replace this with the real
+    // library for production.
+    if (typeof confetti === 'undefined') {
+      window.confetti = function() { /* confetti polyfill: intentionally empty */ };
+    }
+    // Global data structure stored in localStorage under key 'eclipseData'
+    let data = {
+      user: { name: 'Noah', level: 1, xp: 0, theme: 'dark', avatar: '' },
+      tasks: [],
+      habits: [],
+      skills: [
+        { category: 'Santé', level: 0, xp: 0 },
+        { category: 'Discipline', level: 0, xp: 0 },
+        { category: 'Créativité', level: 0, xp: 0 },
+        { category: 'Connaissance', level: 0, xp: 0 },
+        { category: 'Finance', level: 0, xp: 0 },
+        { category: 'Relations', level: 0, xp: 0 },
+      ],
+      rewards: [
+        { id: uuid(), name: 'Soirée détente', cost: 300, owned: false },
+      ],
+      journal: [],
+      visions: [],
+    };
+    // Save data to localStorage
+    function saveData() {
+      localStorage.setItem('eclipseData', JSON.stringify(data));
+    }
+    // Load data from localStorage or create default
+    function loadData() {
+      const stored = localStorage.getItem('eclipseData');
+      if (stored) {
+        try {
+          data = JSON.parse(stored);
+        } catch (e) {
+          console.error('Error parsing stored data', e);
+          saveData();
+        }
+      } else {
+        saveData();
+      }
+    }
+    // Level calculation
+    function xpNeededForLevel(level) {
+      return Math.floor(100 * Math.pow(level, 1.5));
+    }
+    // Update user progress bar
+    function updateXPDisplay() {
+      const { xp, level } = data.user;
+      let needed = xpNeededForLevel(level);
+      let progress = Math.min((xp / needed) * 100, 100);
+      document.getElementById('userXp').textContent = xp;
+      document.getElementById('userLevel').textContent = level;
+      document.getElementById('xpNeeded').textContent = needed;
+      document.getElementById('xpBar').style.width = progress + '%';
+    }
+    // Award XP and handle level up
+    function addXp(amount) {
+      data.user.xp += amount;
+      // Level up logic
+      while (data.user.xp >= xpNeededForLevel(data.user.level)) {
+        data.user.xp -= xpNeededForLevel(data.user.level);
+        data.user.level++;
+        // Level up animation
+        document.getElementById('levelUpMessage').classList.remove('hidden');
+        document.getElementById('avatarImg').classList.add('animate-level-up');
+        // Confetti
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        setTimeout(() => {
+          document.getElementById('levelUpMessage').classList.add('hidden');
+          document.getElementById('avatarImg').classList.remove('animate-level-up');
+        }, 3000);
+      }
+      updateXPDisplay();
+      saveData();
+    }
+
+    /*
+     * Map a free‑form category string to one of the six predefined skill
+     * categories. This helper normalises user input from task categories
+     * (e.g. “Sport”, “Étude”, “Perso”) to the closest matching skill
+     * branch. The mapping uses case‑insensitive substring checks and
+     * defaults to “Discipline” when no match is found. Feel free to
+     * extend or adjust this mapping as you add new task categories.
+     */
+    function getSkillCategory(category) {
+      if (!category) return 'Discipline';
+      const c = category.toLowerCase();
+      if (c.includes('sant') || c.includes('sport') || c.includes('health') || c.includes('fitness')) return 'Santé';
+      if (c.includes('discip') || c.includes('travail') || c.includes('work') || c.includes('perso')) return 'Discipline';
+      if (c.includes('créat') || c.includes('art') || c.includes('design')) return 'Créativité';
+      if (c.includes('conna') || c.includes('étude') || c.includes('study') || c.includes('learn')) return 'Connaissance';
+      if (c.includes('fin') || c.includes('argent') || c.includes('finance')) return 'Finance';
+      if (c.includes('relat') || c.includes('social') || c.includes('famille') || c.includes('ami')) return 'Relations';
+      return 'Discipline';
+    }
+
+    /*
+     * Increase XP for a given skill category and handle its level progression.
+     * Each skill uses the same XP curve as the user (100 × level^1.5) for
+     * levelling up. When a skill levels up the XP bar rolls over to the
+     * next level. After updating XP this function re‑renders the skills
+     * section so the UI stays in sync.
+     */
+    function addSkillXp(category, amount) {
+      const skill = data.skills.find(s => s.category === category);
+      if (!skill || !amount) return;
+      skill.xp += amount;
+      // Level up skill repeatedly if enough XP accumulated
+      while (skill.xp >= xpNeededForLevel(skill.level + 1)) {
+        skill.xp -= xpNeededForLevel(skill.level + 1);
+        skill.level++;
+      }
+      renderSkills();
+      saveData();
+    }
+    // Refresh dashboard stats (tasks done/habits etc.)
+    function refreshDashboard() {
+      // Today’s date string
+      const today = new Date().toISOString().split('T')[0];
+      const tasksToday = data.tasks.filter(t => t.status === 'done' && t.date === today).length;
+      const habitsToday = data.habits.reduce((acc, h) => acc + (h.completions && h.completions[today] ? 1 : 0), 0);
+      document.getElementById('todayTasks').textContent = tasksToday;
+      document.getElementById('todayHabits').textContent = habitsToday;
+      // Mood from journal
+      const entry = data.journal.find(j => j.date === today);
+      document.getElementById('todayMood').textContent = entry ? moodEmoji(entry.mood) : '🙂';
+      // Random daily quote
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      document.getElementById('dailyQuote').textContent = '« ' + quote + ' »';
+      // User info
+      document.getElementById('userName').textContent = data.user.name;
+      if (data.user.avatar) {
+        document.getElementById('avatarImg').src = data.user.avatar;
+      }
+      // Theme
+      document.body.className = data.user.theme;
+      // update theme switch toggle
+      const themeToggleEl = document.getElementById('themeSwitch');
+      if (themeToggleEl) themeToggleEl.checked = data.user.theme === 'light';
+    }
+    // Convert mood value to emoji
+    function moodEmoji(mood) {
+      const scale = ['😠','😧','😟','😕','😐','🙂','😌','😃','😁','🤩'];
+      return scale[Math.max(0, Math.min(scale.length - 1, mood - 1))];
+    }
+    // Render tasks list
+    function renderTasks() {
+      const container = document.getElementById('taskList');
+      container.innerHTML = '';
+      // Build filter values
+      const filterCategory = document.getElementById('taskFilterCategory').value;
+      const filterStatus = document.getElementById('taskFilterStatus').value;
+      const filterDate = document.getElementById('taskFilterDate').value;
+      data.tasks.forEach(task => {
+        if (filterCategory && task.category !== filterCategory) return;
+        if (filterStatus && task.status !== filterStatus) return;
+        if (filterDate && task.date !== filterDate) return;
+        const card = document.createElement('div');
+        card.className = 'glass p-4 flex justify-between items-center';
+        card.innerHTML = `
+          <div class="flex-1">
+            <h4 class="font-medium">${task.title}</h4>
+            <p class="text-xs opacity-70">${task.category} • ${task.date || ''}</p>
+            <p class="text-xs opacity-70">XP: ${task.xp}</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <select class="bg-white/10 p-1 rounded-md text-xs task-status-select" data-id="${task.id}">
+              <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>À faire</option>
+              <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>En cours</option>
+              <option value="done" ${task.status === 'done' ? 'selected' : ''}>Terminée</option>
+            </select>
+            <button class="p-1 text-red-400 hover:text-red-600 delete-task" data-id="${task.id}"><i data-feather="trash-2"></i></button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      feather.replace();
+    }
+    // Render habits list
+    function renderHabits() {
+      const container = document.getElementById('habitList');
+      container.innerHTML = '';
+      const today = new Date().toISOString().split('T')[0];
+      data.habits.forEach(habit => {
+        const card = document.createElement('div');
+        card.className = 'glass p-4';
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <h4 class="font-medium">${habit.name}</h4>
+            <button class="p-1 bg-emerald-500 text-white rounded-md habit-check" data-id="${habit.id}">${habit.completions && habit.completions[today] ? '✓' : '+'}</button>
+          </div>
+          <p class="text-xs opacity-70">Streak: ${habit.streak || 0}</p>
+          <p class="text-xs opacity-70">XP/jour: ${habit.xp}</p>
+        `;
+        container.appendChild(card);
+      });
+      feather.replace();
+    }
+    // Render skills
+    function renderSkills() {
+      const grid = document.getElementById('skillsGrid');
+      grid.innerHTML = '';
+      data.skills.forEach(skill => {
+        const needed = xpNeededForLevel(skill.level + 1);
+        const progress = Math.min((skill.xp / needed) * 100, 100);
+        const card = document.createElement('div');
+        card.className = 'glass p-4';
+        card.innerHTML = `
+          <h4 class="font-medium mb-1">${skill.category}</h4>
+          <div class="text-xs opacity-70 mb-2">Niveau ${skill.level}</div>
+          <div class="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+            <div class="h-full bg-secondary" style="width:${progress}%"></div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    // Render rewards shop
+    function renderRewards() {
+      const container = document.getElementById('rewardList');
+      container.innerHTML = '';
+      data.rewards.forEach(reward => {
+        const card = document.createElement('div');
+        card.className = 'glass p-4 flex flex-col';
+        card.innerHTML = `
+          <h4 class="font-medium">${reward.name}</h4>
+          <p class="text-xs opacity-70 mb-2">Coût: ${reward.cost} XP</p>
+          <button class="mt-auto py-1 px-2 rounded-lg ${reward.owned ? 'bg-gray-500 text-white' : 'bg-yellow-400 text-black hover:scale-105 transition purchase-reward'}" data-id="${reward.id}" ${reward.owned ? 'disabled' : ''}>${reward.owned ? 'Acheté' : 'Acheter'}</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+    // Render journal and vision board
+    function renderJournalVision() {
+      // Vision
+      const board = document.getElementById('visionBoard');
+      board.innerHTML = '';
+      data.visions.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'relative group';
+        if (item.image) {
+          card.innerHTML = `<img src="${item.image}" alt="vision" class="w-full h-24 object-cover rounded-lg" /><p class="absolute bottom-0 left-0 right-0 bg-black/60 text-xs text-white p-1 opacity-0 group-hover:opacity-100 transition">${item.text || ''}</p>`;
+        } else {
+          card.innerHTML = `<div class="w-full h-24 flex items-center justify-center bg-white/10 rounded-lg"><p class="text-sm">${item.text}</p></div>`;
+        }
+        board.appendChild(card);
+      });
+      // Journal entries
+      const entriesContainer = document.getElementById('journalEntries');
+      entriesContainer.innerHTML = '';
+      data.journal.slice().reverse().forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'glass p-2 text-sm';
+        div.innerHTML = `<div class="flex justify-between"><span>${entry.date}</span><span>${moodEmoji(entry.mood)}</span></div><p class="mt-1">${entry.note}</p>`;
+        entriesContainer.appendChild(div);
+      });
+      // Chart
+      const ctx = document.getElementById('moodChart');
+      const labels = data.journal.map(j => j.date);
+      const moods = data.journal.map(j => j.mood);
+      if (window.moodChart && typeof window.moodChart.destroy === 'function') window.moodChart.destroy();
+      window.moodChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: [{ label: 'Humeur', data: moods, borderColor: '#A970FF', backgroundColor: 'rgba(169,112,255,0.2)', tension: 0.3 }] },
+        options: { scales: { y: { min: 0, max: 10, ticks: { stepSize: 1 } } } }
+      });
+    }
+    // Populate category filter options based on tasks
+    function refreshTaskCategories() {
+      const select = document.getElementById('taskFilterCategory');
+      const categories = [...new Set(data.tasks.map(t => t.category))];
+      select.innerHTML = '<option value="">Toutes les catégories</option>';
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+    // Initialize UI and data
+    function init() {
+      loadData();
+      updateXPDisplay();
+      refreshDashboard();
+      renderTasks();
+      renderHabits();
+      renderSkills();
+      renderRewards();
+      renderJournalVision();
+      refreshTaskCategories();
+      feather.replace();
+    }
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      init();
+      // Query DOM elements once to avoid relying on global window variables
+      const themeSwitch = document.getElementById('themeSwitch');
+      const exportDataBtn = document.getElementById('exportData');
+      const importDataBtnEl = document.getElementById('importDataBtn');
+      const importDataFileEl = document.getElementById('importDataFile');
+      const profileName = document.getElementById('profileName');
+      const profileAvatar = document.getElementById('profileAvatar');
+      const saveProfileBtn = document.getElementById('saveProfileBtn');
+      const resetDataBtn = document.getElementById('resetDataBtn');
+      const addTaskBtn = document.getElementById('addTaskBtn');
+      const addHabitBtnEl = document.getElementById('addHabitBtn');
+      const addRewardBtnEl = document.getElementById('addRewardBtn');
+      const rewardList = document.getElementById('rewardList');
+      const habitList = document.getElementById('habitList');
+      const taskList = document.getElementById('taskList');
+      const addJournalBtn = document.getElementById('addJournalBtn');
+      const addVisionBtnEl = document.getElementById('addVisionBtn');
+      const taskModal = document.getElementById('taskModal');
+      const habitModal = document.getElementById('habitModal');
+      const rewardModal = document.getElementById('rewardModal');
+      const journalModal = document.getElementById('journalModal');
+      const visionModal = document.getElementById('visionModal');
+      const closeTaskModalBtn = document.getElementById('closeTaskModal');
+      const closeHabitModalBtn = document.getElementById('closeHabitModal');
+      const closeRewardModalBtn = document.getElementById('closeRewardModal');
+      const closeJournalModalBtn = document.getElementById('closeJournalModal');
+      const closeVisionModalBtn = document.getElementById('closeVisionModal');
+      const saveTaskBtn = document.getElementById('saveTaskBtn');
+      const saveHabitBtn = document.getElementById('saveHabitBtn');
+      const saveRewardBtn = document.getElementById('saveRewardBtn');
+      const saveJournalBtn = document.getElementById('saveJournalBtn');
+      const saveVisionBtn = document.getElementById('saveVisionBtn');
+      const taskTitle = document.getElementById('taskTitle');
+      const taskCategory = document.getElementById('taskCategory');
+      const taskDueDate = document.getElementById('taskDueDate');
+      const taskXp = document.getElementById('taskXp');
+      const taskStatus = document.getElementById('taskStatus');
+      const habitName = document.getElementById('habitName');
+      const habitXp = document.getElementById('habitXp');
+      const rewardName = document.getElementById('rewardName');
+      const rewardCost = document.getElementById('rewardCost');
+      const journalMood = document.getElementById('journalMood');
+      const journalNote = document.getElementById('journalNote');
+      const journalXp = document.getElementById('journalXp');
+      const visionImage = document.getElementById('visionImage');
+      const visionText = document.getElementById('visionText');
+      // Task filter selects
+      const taskFilterCategory = document.getElementById('taskFilterCategory');
+      const taskFilterStatus = document.getElementById('taskFilterStatus');
+      const taskFilterDate = document.getElementById('taskFilterDate');
+
+      // Tab navigation
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active', 'text-accent'));
+          btn.classList.add('active', 'text-accent');
+          document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+          const target = btn.getAttribute('data-tab');
+          const section = document.getElementById(target);
+          if (section) section.classList.remove('hidden');
+        });
+      });
+      // Quick actions
+      const quickAddTaskBtn = document.getElementById('quickAddTask');
+      const quickAddHabitBtn = document.getElementById('quickAddHabit');
+      const quickAddJournalBtn = document.getElementById('quickAddJournal');
+      const quickShopBtn = document.getElementById('quickShop');
+      quickAddTaskBtn.addEventListener('click', () => { openTaskModal(); });
+      quickAddHabitBtn.addEventListener('click', () => { openHabitModal(); });
+      quickAddJournalBtn.addEventListener('click', () => { openJournalModal(); });
+      quickShopBtn.addEventListener('click', () => {
+        document.querySelector("button[data-tab='shop']").click();
+      });
+      // Task filters
+      taskFilterCategory.addEventListener('change', renderTasks);
+      taskFilterStatus.addEventListener('change', renderTasks);
+      taskFilterDate.addEventListener('change', renderTasks);
+      // Add new task
+      addTaskBtn.addEventListener('click', () => openTaskModal());
+      saveTaskBtn.addEventListener('click', saveTask);
+      // Close modals
+      closeTaskModalBtn.addEventListener('click', () => hideModal(taskModal));
+      closeHabitModalBtn.addEventListener('click', () => hideModal(habitModal));
+      closeRewardModalBtn.addEventListener('click', () => hideModal(rewardModal));
+      closeJournalModalBtn.addEventListener('click', () => hideModal(journalModal));
+      closeVisionModalBtn.addEventListener('click', () => hideModal(visionModal));
+      // Add new habit
+      addHabitBtnEl.addEventListener('click', () => openHabitModal());
+      saveHabitBtn.addEventListener('click', saveHabit);
+      // Add reward
+      addRewardBtnEl.addEventListener('click', () => openRewardModal());
+      saveRewardBtn.addEventListener('click', saveReward);
+      // Purchase reward
+      rewardList.addEventListener('click', e => {
+        if (e.target.classList.contains('purchase-reward')) {
+          const id = e.target.getAttribute('data-id');
+          const reward = data.rewards.find(r => r.id === id);
+          if (data.user.xp >= reward.cost) {
+            addXp(-reward.cost);
+            reward.owned = true;
+            renderRewards();
+            saveData();
+          } else {
+            alert("Pas assez d'XP");
+          }
+        }
+      });
+      // Habit check
+      habitList.addEventListener('click', e => {
+        if (e.target.classList.contains('habit-check')) {
+          const id = e.target.getAttribute('data-id');
+          const habit = data.habits.find(h => h.id === id);
+          const today = new Date().toISOString().split('T')[0];
+          if (!habit.completions) habit.completions = {};
+          if (!habit.completions[today]) {
+            habit.completions[today] = true;
+            habit.streak = (habit.streak || 0) + 1;
+            // Award XP to the user
+            addXp(habit.xp);
+            // Habits contribute to discipline by default
+            addSkillXp('Discipline', habit.xp);
+          }
+          renderHabits();
+          refreshDashboard();
+          saveData();
+        }
+      });
+      // Update task status or delete
+      taskList.addEventListener('change', e => {
+        if (e.target.classList.contains('task-status-select')) {
+          const id = e.target.getAttribute('data-id');
+          const task = data.tasks.find(t => t.id === id);
+          const oldStatus = task.status;
+          task.status = e.target.value;
+          if (task.status === 'done' && oldStatus !== 'done') {
+            // Mark date as today
+            task.date = new Date().toISOString().split('T')[0];
+            // Award XP to the user
+            addXp(task.xp);
+            // Also award XP to the corresponding skill branch based on the task category
+            const skillCat = getSkillCategory(task.category);
+            addSkillXp(skillCat, task.xp);
+          }
+          renderTasks();
+          refreshDashboard();
+          saveData();
+        }
+      });
+      taskList.addEventListener('click', e => {
+        if (e.target.closest('.delete-task')) {
+          const id = e.target.closest('.delete-task').getAttribute('data-id');
+          data.tasks = data.tasks.filter(t => t.id !== id);
+          renderTasks();
+          refreshDashboard();
+          refreshTaskCategories();
+          saveData();
+        }
+      });
+      // Journal new entry
+      addJournalBtn.addEventListener('click', openJournalModal);
+      saveJournalBtn.addEventListener('click', saveJournal);
+      // Vision board
+      addVisionBtn.addEventListener('click', openVisionModal);
+      saveVisionBtn.addEventListener('click', saveVision);
+      // Profile save
+      saveProfileBtn.addEventListener('click', () => {
+        data.user.name = profileName.value || data.user.name;
+        if (profileAvatar.files[0]) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            data.user.avatar = e.target.result;
+            refreshDashboard();
+            saveData();
+          };
+          reader.readAsDataURL(profileAvatar.files[0]);
+        } else {
+          refreshDashboard();
+          saveData();
+        }
+      });
+      // Theme toggle
+      themeSwitch.addEventListener('change', () => {
+        data.user.theme = themeSwitch.checked ? 'light' : 'dark';
+        document.body.className = data.user.theme;
+        saveData();
+      });
+      // Reset data
+      resetDataBtn.addEventListener('click', () => {
+        if (confirm('Êtes-vous sûr de vouloir réinitialiser toutes les données ?')) {
+          localStorage.removeItem('eclipseData');
+          loadData();
+          init();
+        }
+      });
+      // Export data
+      exportDataBtn.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'eclipse-data.json';
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+      // Import data
+      importDataBtnEl.addEventListener('click', () => {
+        importDataFileEl.click();
+      });
+      importDataFileEl.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = evt => {
+            try {
+              const imported = JSON.parse(evt.target.result);
+              data = imported;
+              saveData();
+              init();
+              alert('Import réussi !');
+            } catch (error) {
+              alert('Fichier invalide');
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+      // Background day/night based on time
+      function updateBackground() {
+        const hour = new Date().getHours();
+        const bg = document.getElementById('bg-animation');
+        if (hour >= 6 && hour < 18) {
+          bg.style.background = 'linear-gradient(to bottom, #007AFF, #A970FF)';
+        } else {
+          bg.style.background = 'linear-gradient(to bottom, #0E0E10, #4B0082)';
+        }
+      }
+      updateBackground();
+      setInterval(updateBackground, 3600000); // update hourly
+    });
+    // Modal helpers
+    function openTaskModal(task = null) {
+      taskModal.classList.remove('hidden');
+      if (task) {
+        taskModalTitle.textContent = 'Modifier tâche';
+        taskTitle.value = task.title;
+        taskCategory.value = task.category;
+        taskDueDate.value = task.date || '';
+        taskXp.value = task.xp;
+        taskStatus.value = task.status;
+        saveTaskBtn.dataset.editId = task.id;
+      } else {
+        taskModalTitle.textContent = 'Nouvelle tâche';
+        taskTitle.value = '';
+        taskCategory.value = '';
+        taskDueDate.value = '';
+        taskXp.value = '';
+        taskStatus.value = 'todo';
+        delete saveTaskBtn.dataset.editId;
+      }
+    }
+    function openHabitModal(habit = null) {
+      habitModal.classList.remove('hidden');
+      if (habit) {
+        habitModalTitle.textContent = 'Modifier habitude';
+        habitName.value = habit.name;
+        habitXp.value = habit.xp;
+        saveHabitBtn.dataset.editId = habit.id;
+      } else {
+        habitModalTitle.textContent = 'Nouvelle habitude';
+        habitName.value = '';
+        habitXp.value = '';
+        delete saveHabitBtn.dataset.editId;
+      }
+    }
+    function openRewardModal(reward = null) {
+      rewardModal.classList.remove('hidden');
+      if (reward) {
+        rewardModalTitle.textContent = 'Modifier récompense';
+        rewardName.value = reward.name;
+        rewardCost.value = reward.cost;
+        saveRewardBtn.dataset.editId = reward.id;
+      } else {
+        rewardModalTitle.textContent = 'Nouvelle récompense';
+        rewardName.value = '';
+        rewardCost.value = '';
+        delete saveRewardBtn.dataset.editId;
+      }
+    }
+    function openJournalModal() {
+      journalModal.classList.remove('hidden');
+      journalMood.value = 5;
+      journalNote.value = '';
+      journalXp.value = '';
+    }
+    function openVisionModal() {
+      visionModal.classList.remove('hidden');
+      visionImage.value = '';
+      visionText.value = '';
+    }
+    function hideModal(modal) {
+      modal.classList.add('hidden');
+    }
+    // Save Task
+    function saveTask() {
+      const title = taskTitle.value.trim();
+      const category = taskCategory.value.trim();
+      const date = taskDueDate.value || null;
+      const xp = parseInt(taskXp.value) || 0;
+      const status = taskStatus.value;
+      if (!title) return alert('Veuillez saisir un titre');
+      const editId = saveTaskBtn.dataset.editId;
+      if (editId) {
+        const task = data.tasks.find(t => t.id === editId);
+        Object.assign(task, { title, category, date, xp, status });
+      } else {
+        data.tasks.push({ id: uuid(), title, category, date, xp, status });
+      }
+      hideModal(taskModal);
+      renderTasks();
+      refreshTaskCategories();
+      saveData();
+    }
+    // Save Habit
+    function saveHabit() {
+      const name = habitName.value.trim();
+      const xp = parseInt(habitXp.value) || 0;
+      if (!name) return alert('Veuillez saisir un nom');
+      const editId = saveHabitBtn.dataset.editId;
+      if (editId) {
+        const habit = data.habits.find(h => h.id === editId);
+        Object.assign(habit, { name, xp });
+      } else {
+        data.habits.push({ id: uuid(), name, xp, streak: 0, completions: {} });
+      }
+      hideModal(habitModal);
+      renderHabits();
+      saveData();
+    }
+    // Save Reward
+    function saveReward() {
+      const name = rewardName.value.trim();
+      const cost = parseInt(rewardCost.value) || 0;
+      if (!name) return alert('Veuillez saisir un nom');
+      const editId = saveRewardBtn.dataset.editId;
+      if (editId) {
+        const reward = data.rewards.find(r => r.id === editId);
+        Object.assign(reward, { name, cost });
+      } else {
+        data.rewards.push({ id: uuid(), name, cost, owned: false });
+      }
+      hideModal(rewardModal);
+      renderRewards();
+      saveData();
+    }
+    // Save Journal
+    function saveJournal() {
+      // Fetch elements fresh to avoid scope issues
+      const moodEl = document.getElementById('journalMood');
+      const noteEl = document.getElementById('journalNote');
+      const xpEl = document.getElementById('journalXp');
+      const mood = parseInt(moodEl.value);
+      const note = noteEl.value.trim();
+      const xp = parseInt(xpEl.value) || 0;
+      const date = new Date().toISOString().split('T')[0];
+      data.journal.push({ date, mood, note, xp });
+      if (xp) addXp(xp);
+      hideModal(document.getElementById('journalModal'));
+      renderJournalVision();
+      refreshDashboard();
+      saveData();
+    }
+    // Save Vision
+    function saveVision() {
+      const text = visionText.value.trim();
+      const file = visionImage.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          data.visions.push({ image: e.target.result, text });
+          hideModal(visionModal);
+          renderJournalVision();
+          saveData();
+        };
+        reader.readAsDataURL(file);
+      } else if (text) {
+        data.visions.push({ image: null, text });
+        hideModal(visionModal);
+        renderJournalVision();
+        saveData();
+      } else {
+        alert('Veuillez ajouter une image ou un texte');
+      }
+    }
+  </script>
+</body>
+</html>
