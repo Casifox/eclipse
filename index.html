@@ -32,9 +32,11 @@
       theme: {
         extend: {
           colors: {
-            base: '#0E0E10',
-            accent: '#007AFF',
-            secondary: '#A970FF',
+            // New pastel‑inspired palette for a more airy look
+            base: '#F3F4F6',       // light grey base for cards and backgrounds
+            accent: '#6366F1',     // indigo accent used on buttons and progress bars
+            secondary: '#F59E0B',  // amber secondary for highlights
+            danger: '#EF4444',     // red tone for destructive actions
           },
           fontFamily: {
             sans: ['Poppins', 'ui‑sans‑serif', 'system‑ui'],
@@ -60,17 +62,39 @@
     html {
       font-family: 'Poppins', sans-serif;
     }
+    /* Dark theme: subtle gradient from navy to charcoal */
     body.dark {
-      background: #0E0E10;
-      color: #F4F4F5;
+      background: linear-gradient(to bottom, #0F172A 0%, #1F2937 100%);
+      color: #F8FAFC;
     }
+    /* Light theme: very light gradient for a clean look */
     body.light {
-      background: #F4F4F5;
-      color: #0E0E10;
+      background: linear-gradient(to bottom, #FFFFFF 0%, #F3F4F6 100%);
+      color: #1F2937;
     }
     /* Glassmorphism card */
     .glass {
-      @apply bg-white/10 backdrop-blur-md rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/20;
+      @apply backdrop-blur-md rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)];
+    }
+    /* Light theme glass cards are more opaque with dark text */
+    body.light .glass {
+      @apply bg-white/80 border border-black/5 text-gray-800;
+    }
+    /* Dark theme glass cards use translucent panels with light text */
+    body.dark .glass {
+      @apply bg-white/10 border border-white/20 text-white;
+    }
+
+    /* Form elements contrast: inputs, selects and textareas adapt to theme */
+    body.light input,
+    body.light select,
+    body.light textarea {
+      @apply bg-white/70 text-gray-800 placeholder-gray-500;
+    }
+    body.dark input,
+    body.dark select,
+    body.dark textarea {
+      @apply bg-white/10 text-white placeholder-gray-400;
     }
     /* Hide scroll bar for horizontal habit tracker */
     .no-scrollbar::-webkit-scrollbar {
@@ -80,24 +104,24 @@
       -ms-overflow-style: none; /* IE and Edge */
       scrollbar-width: none; /* Firefox */
     }
-    /* Animations for level up */
+    /* Animations for level up with the new accent colour */
     @keyframes levelUpHalo {
-      0% { box-shadow: 0 0 0 0 rgba(0,122,255,0.7); }
-      70% { box-shadow: 0 0 30px 30px rgba(0,122,255,0); }
-      100% { box-shadow: 0 0 0 0 rgba(0,122,255,0); }
+      0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+      70% { box-shadow: 0 0 30px 30px rgba(99, 102, 241, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
     }
     .animate-level-up {
       animation: levelUpHalo 2s ease-out;
     }
   </style>
 </head>
-<body class="dark">
+<body>
   <!-- Background transitions for day/night -->
   <div id="bg-animation" class="fixed inset-0 -z-10 transition-colors duration-1000"></div>
   <!-- Main container -->
   <div class="min-h-screen flex flex-col">
     <!-- Header -->
-    <header class="flex justify-between items-center p-4 md:p-6">
+    <header class="flex justify-between items-center p-4 md:p-6 text-gray-800 dark:text-gray-200">
       <h1 class="text-2xl md:text-3xl font-semibold">Éclipse+</h1>
       <div class="flex items-center space-x-4">
         <button id="themeToggle" class="p-2 rounded-full hover:bg-white/20 transition" title="Changer de thème">
@@ -113,14 +137,29 @@
       </div>
     </header>
     <!-- Navigation Tabs -->
-    <nav class="flex justify-around bg-white/10 backdrop-blur-md py-2 border-t border-b border-white/10 text-sm">
-      <button class="tab active" data-tab="dashboard"><i data-feather="home"></i><span class="hidden md:inline ml-1">Tableau</span></button>
-      <button class="tab" data-tab="tasks"><i data-feather="check-circle"></i><span class="hidden md:inline ml-1">Tâches</span></button>
-      <button class="tab" data-tab="habits"><i data-feather="repeat"></i><span class="hidden md:inline ml-1">Habitudes</span></button>
-      <button class="tab" data-tab="skills"><i data-feather="layers"></i><span class="hidden md:inline ml-1">Compétences</span></button>
-      <button class="tab" data-tab="shop"><i data-feather="shopping-bag"></i><span class="hidden md:inline ml-1">Boutique</span></button>
-      <button class="tab" data-tab="journal"><i data-feather="book"></i><span class="hidden md:inline ml-1">Journal</span></button>
-      <button class="tab" data-tab="settings"><i data-feather="settings"></i><span class="hidden md:inline ml-1">Réglages</span></button>
+    <!-- Navigation: wraps on small screens and stacks icon/text vertically for readability -->
+    <nav class="flex flex-wrap justify-around items-center bg-white/60 dark:bg-gray-700/40 backdrop-blur-md shadow-md py-2 border-t border-b border-white/10 dark:border-gray-700/20 text-xs md:text-sm text-gray-800 dark:text-gray-200">
+      <button class="tab active flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="dashboard">
+        <i data-feather="home"></i><span>Tableau</span>
+      </button>
+      <button class="tab flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="tasks">
+        <i data-feather="check-circle"></i><span>Tâches</span>
+      </button>
+      <button class="tab flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="habits">
+        <i data-feather="repeat"></i><span>Habitudes</span>
+      </button>
+      <button class="tab flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="skills">
+        <i data-feather="layers"></i><span>Compétences</span>
+      </button>
+      <button class="tab flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="shop">
+        <i data-feather="shopping-bag"></i><span>Boutique</span>
+      </button>
+      <button class="tab flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="journal">
+        <i data-feather="book"></i><span>Journal</span>
+      </button>
+      <button class="tab flex flex-col items-center px-2 py-1 space-y-1 md:flex-row md:space-y-0 md:space-x-1" data-tab="settings">
+        <i data-feather="settings"></i><span>Réglages</span>
+      </button>
     </nav>
     <!-- Content -->
     <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
@@ -169,7 +208,7 @@
                 <button id="quickAddTask" class="py-3 px-4 bg-accent text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="plus-circle"></i><span>Tâche</span></button>
                 <button id="quickAddHabit" class="py-3 px-4 bg-secondary text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="repeat"></i><span>Habitude</span></button>
                 <button id="quickAddJournal" class="py-3 px-4 bg-emerald-500 text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="edit-2"></i><span>Journal</span></button>
-                <button id="quickShop" class="py-3 px-4 bg-yellow-500 text-black rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="shopping-bag"></i><span>Boutique</span></button>
+                <button id="quickShop" class="py-3 px-4 bg-danger text-white rounded-lg hover:scale-105 transition flex items-center justify-center space-x-2"><i data-feather="shopping-bag"></i><span>Boutique</span></button>
               </div>
             </div>
             <div class="mt-6">
@@ -218,7 +257,7 @@
       <section id="shop" class="tab-content hidden">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Boutique</h2>
-          <button id="addRewardBtn" class="flex items-center space-x-1 text-yellow-400 hover:underline"><i data-feather="plus"></i><span>Récompense</span></button>
+          <button id="addRewardBtn" class="flex items-center space-x-1 text-secondary hover:underline"><i data-feather="plus"></i><span>Récompense</span></button>
         </div>
         <div id="rewardList" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </section>
@@ -265,11 +304,17 @@
           <h3 class="font-medium mb-2">Données</h3>
           <button id="resetDataBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:scale-105 transition">Réinitialiser les données</button>
         </div>
+        <div class="glass p-4 mb-4" data-aos="fade-up">
+          <h3 class="font-medium mb-2">Aide</h3>
+          <p class="mb-2 text-sm text-gray-600 dark:text-gray-300">Consultez le guide pour comprendre comment utiliser toutes les fonctionnalités.</p>
+          <button id="openHelpBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:scale-105 transition">Ouvrir l'aide</button>
+        </div>
       </section>
     </main>
     <!-- Modals (hidden by default) -->
     <!-- Task Modal -->
-    <div id="taskModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+    <!-- Add a high z-index so the overlay appears above the header/navigation -->
+    <div id="taskModal" class="fixed inset-0 z-50 bg-black/70 flex justify-center items-center hidden">
       <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
         <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeTaskModal"><i data-feather="x"></i></button>
         <h3 class="text-lg font-semibold mb-4" id="taskModalTitle">Nouvelle tâche</h3>
@@ -277,7 +322,14 @@
           <input type="text" id="taskTitle" placeholder="Titre" class="w-full bg-white/10 p-2 rounded-md" />
           <input type="text" id="taskCategory" placeholder="Catégorie" class="w-full bg-white/10 p-2 rounded-md" />
           <input type="date" id="taskDueDate" class="w-full bg-white/10 p-2 rounded-md" />
-          <input type="number" id="taskXp" placeholder="XP" class="w-full bg-white/10 p-2 rounded-md" />
+          <!-- Difficulty selector to determine XP automatically -->
+          <select id="taskDifficulty" class="w-full bg-white/10 p-2 rounded-md">
+            <option value="1">Niveau 1 – Très facile</option>
+            <option value="2">Niveau 2 – Facile</option>
+            <option value="3">Niveau 3 – Moyen</option>
+            <option value="4">Niveau 4 – Difficile</option>
+            <option value="5">Niveau 5 – Très difficile</option>
+          </select>
           <select id="taskStatus" class="w-full bg-white/10 p-2 rounded-md">
             <option value="todo">À faire</option>
             <option value="in-progress">En cours</option>
@@ -288,19 +340,26 @@
       </div>
     </div>
     <!-- Habit Modal -->
-    <div id="habitModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+    <div id="habitModal" class="fixed inset-0 z-50 bg-black/70 flex justify-center items-center hidden">
       <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
         <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeHabitModal"><i data-feather="x"></i></button>
         <h3 class="text-lg font-semibold mb-4" id="habitModalTitle">Nouvelle habitude</h3>
         <div class="space-y-3">
           <input type="text" id="habitName" placeholder="Nom de l'habitude" class="w-full bg-white/10 p-2 rounded-md" />
-          <input type="number" id="habitXp" placeholder="XP par jour" class="w-full bg-white/10 p-2 rounded-md" />
+          <!-- Difficulty selector for habits to determine daily XP automatically -->
+          <select id="habitDifficulty" class="w-full bg-white/10 p-2 rounded-md">
+            <option value="1">Niveau 1 – Très facile</option>
+            <option value="2">Niveau 2 – Facile</option>
+            <option value="3">Niveau 3 – Moyen</option>
+            <option value="4">Niveau 4 – Difficile</option>
+            <option value="5">Niveau 5 – Très difficile</option>
+          </select>
         </div>
         <button id="saveHabitBtn" class="mt-4 w-full py-2 bg-secondary text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
       </div>
     </div>
     <!-- Reward Modal -->
-    <div id="rewardModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+    <div id="rewardModal" class="fixed inset-0 z-50 bg-black/70 flex justify-center items-center hidden">
       <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
         <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeRewardModal"><i data-feather="x"></i></button>
         <h3 class="text-lg font-semibold mb-4" id="rewardModalTitle">Nouvelle récompense</h3>
@@ -312,7 +371,7 @@
       </div>
     </div>
     <!-- Journal Modal -->
-    <div id="journalModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+    <div id="journalModal" class="fixed inset-0 z-50 bg-black/70 flex justify-center items-center hidden">
       <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
         <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeJournalModal"><i data-feather="x"></i></button>
         <h3 class="text-lg font-semibold mb-4">Nouvelle entrée</h3>
@@ -321,13 +380,14 @@
             <input type="range" id="journalMood" min="1" max="10" value="5" class="w-full" />
           </label>
           <textarea id="journalNote" rows="4" placeholder="Note du jour" class="w-full bg-white/10 p-2 rounded-md"></textarea>
-          <input type="number" id="journalXp" placeholder="XP gagné" class="w-full bg-white/10 p-2 rounded-md" />
+          <!-- Preview of automatically calculated XP based on mood -->
+          <div id="journalXpPreview" class="text-xs text-gray-500 dark:text-gray-400">XP gagné : 25</div>
         </div>
         <button id="saveJournalBtn" class="mt-4 w-full py-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
       </div>
     </div>
     <!-- Vision Modal -->
-    <div id="visionModal" class="fixed inset-0 bg-black/60 flex justify-center items-center hidden">
+    <div id="visionModal" class="fixed inset-0 z-50 bg-black/70 flex justify-center items-center hidden">
       <div class="glass p-6 w-11/12 max-w-lg relative" data-aos="zoom-in">
         <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeVisionModal"><i data-feather="x"></i></button>
         <h3 class="text-lg font-semibold mb-4">Ajouter à la Vision Board</h3>
@@ -336,6 +396,44 @@
           <textarea id="visionText" rows="3" placeholder="Citation ou description" class="w-full bg-white/10 p-2 rounded-md"></textarea>
         </div>
         <button id="saveVisionBtn" class="mt-4 w-full py-2 bg-accent text-white rounded-lg hover:scale-105 transition">Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- Help Modal (initially hidden) -->
+    <div id="helpModal" class="fixed inset-0 z-50 bg-black/70 flex justify-center items-center hidden">
+      <div class="glass p-6 w-11/12 max-w-3xl relative overflow-y-auto h-3/4" data-aos="zoom-in">
+        <button class="absolute top-2 right-2 p-1 text-white hover:text-red-500" id="closeHelpModal"><i data-feather="x"></i></button>
+        <h2 class="text-xl font-semibold mb-4">Aide et guide d'utilisation</h2>
+        <div class="space-y-4 text-sm leading-relaxed">
+          <div>
+            <h3 class="text-lg font-medium">Tableau de bord</h3>
+            <p>Le tableau de bord affiche un résumé de votre progression : votre niveau actuel, votre barre d’XP animée, le nombre de tâches et d’habitudes complétées aujourd’hui et votre humeur. Utilisez les actions rapides pour ajouter une tâche, une habitude, écrire dans le journal ou accéder à la boutique.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium">Tâches</h3>
+            <p>Créez des tâches ponctuelles en indiquant un titre, une catégorie, une date limite et un niveau de difficulté. Le niveau de difficulté détermine automatiquement la quantité d’XP gagnée lorsque la tâche est marquée « Terminée ». Les tâches contribuent aussi à l’évolution de vos compétences en fonction de la catégorie choisie.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium">Habitudes</h3>
+            <p>Les habitudes représentent des actions récurrentes (boire de l’eau, méditer, lire, etc.). Choisissez un nom et un niveau de difficulté. Chaque fois que vous cochez une habitude accomplie pour la journée, vous gagnez des XP et votre série (« streak ») augmente.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium">Compétences</h3>
+            <p>Éclipse+ regroupe six domaines de compétences : Santé, Discipline, Créativité, Connaissance, Finance et Relations. Accomplir des tâches et des habitudes dans ces domaines vous fait gagner de l’XP spécifique qui améliore ces compétences. Chaque compétence possède ses propres niveaux et sa barre de progression.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium">Boutique</h3>
+            <p>La boutique permet d’échanger vos XP contre des récompenses que vous définissez vous‑même (par exemple : une soirée détente ou un petit cadeau). Lors de l’achat d’une récompense, son coût en XP est déduit de votre total et la récompense est marquée comme utilisée.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium">Journal & Vision board</h3>
+            <p>Le journal vous permet de noter votre humeur et vos pensées du jour. L’XP est calculé automatiquement en fonction de votre humeur (5 XP par point d’humeur). La vision board vous offre un espace pour ajouter des images ou des citations inspirantes afin de garder vos objectifs en vue.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium">Réglages</h3>
+            <p>Dans les réglages vous pouvez modifier votre nom, changer d’avatar, basculer entre le thème clair ou sombre, réinitialiser toutes les données, ou exporter/importer votre progression sous forme de fichier JSON. Toutes les données sont stockées localement dans votre navigateur pour garantir votre confidentialité.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -369,7 +467,7 @@
     }
     // Global data structure stored in localStorage under key 'eclipseData'
     let data = {
-      user: { name: 'Noah', level: 1, xp: 0, theme: 'dark', avatar: '' },
+      user: { name: 'Noah', level: 1, xp: 0, theme: 'light', avatar: '' },
       tasks: [],
       habits: [],
       skills: [
@@ -521,20 +619,21 @@
         if (filterStatus && task.status !== filterStatus) return;
         if (filterDate && task.date !== filterDate) return;
         const card = document.createElement('div');
-        card.className = 'glass p-4 flex justify-between items-center';
+        // Use custom card styling instead of the shared .glass class for better contrast on light backgrounds
+        card.className = 'p-4 flex justify-between items-center rounded-lg shadow bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/20';
         card.innerHTML = `
           <div class="flex-1">
             <h4 class="font-medium">${task.title}</h4>
-            <p class="text-xs opacity-70">${task.category} • ${task.date || ''}</p>
-            <p class="text-xs opacity-70">XP: ${task.xp}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">${task.category} • ${task.date || ''}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">XP : ${task.xp}</p>
           </div>
           <div class="flex items-center space-x-2">
-            <select class="bg-white/10 p-1 rounded-md text-xs task-status-select" data-id="${task.id}">
+            <select class="p-1 rounded-md text-xs task-status-select bg-white/70 dark:bg-white/10 text-gray-800 dark:text-white" data-id="${task.id}">
               <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>À faire</option>
               <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>En cours</option>
               <option value="done" ${task.status === 'done' ? 'selected' : ''}>Terminée</option>
             </select>
-            <button class="p-1 text-red-400 hover:text-red-600 delete-task" data-id="${task.id}"><i data-feather="trash-2"></i></button>
+            <button class="p-1 text-danger hover:text-red-600 delete-task" data-id="${task.id}"><i data-feather="trash-2"></i></button>
           </div>
         `;
         container.appendChild(card);
@@ -548,14 +647,14 @@
       const today = new Date().toISOString().split('T')[0];
       data.habits.forEach(habit => {
         const card = document.createElement('div');
-        card.className = 'glass p-4';
+        card.className = 'p-4 rounded-lg shadow bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/20';
         card.innerHTML = `
           <div class="flex justify-between items-center">
             <h4 class="font-medium">${habit.name}</h4>
             <button class="p-1 bg-emerald-500 text-white rounded-md habit-check" data-id="${habit.id}">${habit.completions && habit.completions[today] ? '✓' : '+'}</button>
           </div>
-          <p class="text-xs opacity-70">Streak: ${habit.streak || 0}</p>
-          <p class="text-xs opacity-70">XP/jour: ${habit.xp}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Streak : ${habit.streak || 0}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">XP/jour : ${habit.xp}</p>
         `;
         container.appendChild(card);
       });
@@ -569,11 +668,11 @@
         const needed = xpNeededForLevel(skill.level + 1);
         const progress = Math.min((skill.xp / needed) * 100, 100);
         const card = document.createElement('div');
-        card.className = 'glass p-4';
+        card.className = 'p-4 rounded-lg shadow bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/20';
         card.innerHTML = `
           <h4 class="font-medium mb-1">${skill.category}</h4>
-          <div class="text-xs opacity-70 mb-2">Niveau ${skill.level}</div>
-          <div class="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Niveau ${skill.level}</div>
+          <div class="w-full h-2 bg-white/30 dark:bg-white/20 rounded-full overflow-hidden">
             <div class="h-full bg-secondary" style="width:${progress}%"></div>
           </div>
         `;
@@ -586,11 +685,11 @@
       container.innerHTML = '';
       data.rewards.forEach(reward => {
         const card = document.createElement('div');
-        card.className = 'glass p-4 flex flex-col';
+        card.className = 'p-4 rounded-lg shadow flex flex-col bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/20';
         card.innerHTML = `
           <h4 class="font-medium">${reward.name}</h4>
-          <p class="text-xs opacity-70 mb-2">Coût: ${reward.cost} XP</p>
-          <button class="mt-auto py-1 px-2 rounded-lg ${reward.owned ? 'bg-gray-500 text-white' : 'bg-yellow-400 text-black hover:scale-105 transition purchase-reward'}" data-id="${reward.id}" ${reward.owned ? 'disabled' : ''}>${reward.owned ? 'Acheté' : 'Acheter'}</button>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Coût : ${reward.cost} XP</p>
+          <button class="mt-auto py-1 px-2 rounded-lg ${reward.owned ? 'bg-gray-400 text-white' : 'bg-secondary text-white hover:scale-105 transition purchase-reward'}" data-id="${reward.id}" ${reward.owned ? 'disabled' : ''}>${reward.owned ? 'Acheté' : 'Acheter'}</button>
         `;
         container.appendChild(card);
       });
@@ -693,15 +792,20 @@
       const taskTitle = document.getElementById('taskTitle');
       const taskCategory = document.getElementById('taskCategory');
       const taskDueDate = document.getElementById('taskDueDate');
-      const taskXp = document.getElementById('taskXp');
+      const taskDifficulty = document.getElementById('taskDifficulty');
       const taskStatus = document.getElementById('taskStatus');
       const habitName = document.getElementById('habitName');
-      const habitXp = document.getElementById('habitXp');
+      const habitDifficulty = document.getElementById('habitDifficulty');
       const rewardName = document.getElementById('rewardName');
       const rewardCost = document.getElementById('rewardCost');
       const journalMood = document.getElementById('journalMood');
       const journalNote = document.getElementById('journalNote');
-      const journalXp = document.getElementById('journalXp');
+      // journalXp has been removed; instead we preview XP automatically based on mood
+      const journalXpPreview = document.getElementById('journalXpPreview');
+      // Help modal elements
+      const openHelpBtn = document.getElementById('openHelpBtn');
+      const helpModal = document.getElementById('helpModal');
+      const closeHelpModalBtn = document.getElementById('closeHelpModal');
       const visionImage = document.getElementById('visionImage');
       const visionText = document.getElementById('visionText');
       // Task filter selects
@@ -709,13 +813,43 @@
       const taskFilterStatus = document.getElementById('taskFilterStatus');
       const taskFilterDate = document.getElementById('taskFilterDate');
 
+      // Update XP preview whenever the mood slider changes
+      journalMood.addEventListener('input', () => {
+        const xpAuto = parseInt(journalMood.value) * 5;
+        if (journalXpPreview) {
+          journalXpPreview.textContent = 'XP gagné : ' + xpAuto;
+        }
+      });
+
+      // Open help modal
+      if (openHelpBtn) {
+        openHelpBtn.addEventListener('click', () => {
+          if (helpModal) helpModal.classList.remove('hidden');
+          // Render feather icons inside the modal
+          if (typeof feather !== 'undefined') feather.replace();
+        });
+      }
+      // Close help modal
+      if (closeHelpModalBtn) {
+        closeHelpModalBtn.addEventListener('click', () => {
+          if (helpModal) helpModal.classList.add('hidden');
+        });
+      }
+
       // Tab navigation
       document.querySelectorAll('.tab').forEach(btn => {
         btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-tab');
+          // If the help tab is clicked, open the help modal instead of switching sections
+          if (target === 'help') {
+            if (helpModal) helpModal.classList.remove('hidden');
+            if (typeof feather !== 'undefined') feather.replace();
+            return;
+          }
+          // Otherwise, normal tab switching
           document.querySelectorAll('.tab').forEach(t => t.classList.remove('active', 'text-accent'));
           btn.classList.add('active', 'text-accent');
           document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
-          const target = btn.getAttribute('data-tab');
           const section = document.getElementById(target);
           if (section) section.classList.remove('hidden');
         });
@@ -842,6 +976,10 @@
       themeSwitch.addEventListener('change', () => {
         data.user.theme = themeSwitch.checked ? 'light' : 'dark';
         document.body.className = data.user.theme;
+        // Update the animated background immediately when switching theme
+        if (typeof updateBackground === 'function') {
+          updateBackground();
+        }
         saveData();
       });
       // Reset data
@@ -888,10 +1026,19 @@
       function updateBackground() {
         const hour = new Date().getHours();
         const bg = document.getElementById('bg-animation');
-        if (hour >= 6 && hour < 18) {
-          bg.style.background = 'linear-gradient(to bottom, #007AFF, #A970FF)';
+        // Adjust the dynamic background depending on the time of day and theme.
+        // If the user selected the dark theme, always show the dark gradient. Otherwise
+        // switch between a pastel daytime gradient and a darker evening gradient based on the hour.
+        const isDarkTheme = data && data.user && data.user.theme === 'dark';
+        if (isDarkTheme) {
+          bg.style.background = 'linear-gradient(to bottom, #0F172A, #1E293B)';
         } else {
-          bg.style.background = 'linear-gradient(to bottom, #0E0E10, #4B0082)';
+          // Use time of day only when theme is light
+          if (hour >= 6 && hour < 18) {
+            bg.style.background = 'linear-gradient(to bottom, #FDE68A, #FBCFE8)';
+          } else {
+            bg.style.background = 'linear-gradient(to bottom, #0F172A, #1E293B)';
+          }
         }
       }
       updateBackground();
@@ -905,7 +1052,17 @@
         taskTitle.value = task.title;
         taskCategory.value = task.category;
         taskDueDate.value = task.date || '';
-        taskXp.value = task.xp;
+        // Determine difficulty from XP or stored difficulty property
+        const xpVals = [10, 20, 30, 40, 50];
+        let diffIndex = 0;
+        if (task.difficulty) {
+          diffIndex = task.difficulty - 1;
+        } else if (task.xp) {
+          // Fallback: approximate difficulty based on existing XP
+          const idx = xpVals.indexOf(task.xp);
+          diffIndex = idx >= 0 ? idx : 0;
+        }
+        taskDifficulty.value = String(diffIndex + 1);
         taskStatus.value = task.status;
         saveTaskBtn.dataset.editId = task.id;
       } else {
@@ -913,7 +1070,7 @@
         taskTitle.value = '';
         taskCategory.value = '';
         taskDueDate.value = '';
-        taskXp.value = '';
+        taskDifficulty.value = '1';
         taskStatus.value = 'todo';
         delete saveTaskBtn.dataset.editId;
       }
@@ -923,12 +1080,21 @@
       if (habit) {
         habitModalTitle.textContent = 'Modifier habitude';
         habitName.value = habit.name;
-        habitXp.value = habit.xp;
+        // Determine difficulty from XP or stored difficulty
+        const xpValsHab = [5, 10, 15, 20, 25];
+        let diffIndex = 0;
+        if (habit.difficulty) {
+          diffIndex = habit.difficulty - 1;
+        } else if (habit.xp) {
+          const idx = xpValsHab.indexOf(habit.xp);
+          diffIndex = idx >= 0 ? idx : 0;
+        }
+        habitDifficulty.value = String(diffIndex + 1);
         saveHabitBtn.dataset.editId = habit.id;
       } else {
         habitModalTitle.textContent = 'Nouvelle habitude';
         habitName.value = '';
-        habitXp.value = '';
+        habitDifficulty.value = '1';
         delete saveHabitBtn.dataset.editId;
       }
     }
@@ -950,7 +1116,11 @@
       journalModal.classList.remove('hidden');
       journalMood.value = 5;
       journalNote.value = '';
-      journalXp.value = '';
+      // Update XP preview based on default mood value
+      if (journalXpPreview) {
+        const xpAuto = parseInt(journalMood.value) * 5;
+        journalXpPreview.textContent = 'XP gagné : ' + xpAuto;
+      }
     }
     function openVisionModal() {
       visionModal.classList.remove('hidden');
@@ -965,15 +1135,18 @@
       const title = taskTitle.value.trim();
       const category = taskCategory.value.trim();
       const date = taskDueDate.value || null;
-      const xp = parseInt(taskXp.value) || 0;
+      // Determine XP based on selected difficulty (1–5)
+      const difficulty = parseInt(taskDifficulty.value) || 1;
+      const xpValues = [10, 20, 30, 40, 50];
+      const xp = xpValues[difficulty - 1];
       const status = taskStatus.value;
       if (!title) return alert('Veuillez saisir un titre');
       const editId = saveTaskBtn.dataset.editId;
       if (editId) {
         const task = data.tasks.find(t => t.id === editId);
-        Object.assign(task, { title, category, date, xp, status });
+        Object.assign(task, { title, category, date, xp, status, difficulty });
       } else {
-        data.tasks.push({ id: uuid(), title, category, date, xp, status });
+        data.tasks.push({ id: uuid(), title, category, date, xp, status, difficulty });
       }
       hideModal(taskModal);
       renderTasks();
@@ -983,14 +1156,17 @@
     // Save Habit
     function saveHabit() {
       const name = habitName.value.trim();
-      const xp = parseInt(habitXp.value) || 0;
+      // Determine XP/day based on selected difficulty
+      const difficulty = parseInt(habitDifficulty.value) || 1;
+      const xpValuesHab = [5, 10, 15, 20, 25];
+      const xp = xpValuesHab[difficulty - 1];
       if (!name) return alert('Veuillez saisir un nom');
       const editId = saveHabitBtn.dataset.editId;
       if (editId) {
         const habit = data.habits.find(h => h.id === editId);
-        Object.assign(habit, { name, xp });
+        Object.assign(habit, { name, xp, difficulty });
       } else {
-        data.habits.push({ id: uuid(), name, xp, streak: 0, completions: {} });
+        data.habits.push({ id: uuid(), name, xp, difficulty, streak: 0, completions: {} });
       }
       hideModal(habitModal);
       renderHabits();
@@ -1015,15 +1191,17 @@
     // Save Journal
     function saveJournal() {
       // Fetch elements fresh to avoid scope issues
+      // Fetch elements fresh to avoid scope issues
       const moodEl = document.getElementById('journalMood');
       const noteEl = document.getElementById('journalNote');
-      const xpEl = document.getElementById('journalXp');
       const mood = parseInt(moodEl.value);
       const note = noteEl.value.trim();
-      const xp = parseInt(xpEl.value) || 0;
+      // XP is automatically derived from mood (5 XP per mood point)
+      const xp = mood * 5;
       const date = new Date().toISOString().split('T')[0];
       data.journal.push({ date, mood, note, xp });
-      if (xp) addXp(xp);
+      // Award XP automatically
+      addXp(xp);
       hideModal(document.getElementById('journalModal'));
       renderJournalVision();
       refreshDashboard();
